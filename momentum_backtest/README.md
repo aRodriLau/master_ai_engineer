@@ -17,6 +17,12 @@ Ogni fine mese:
    assoluto**), altrimenti quella quota resta in liquidità. È questo che, in
    teoria, protegge dai crolli come quelli del 2008 o del 2022.
 
+Il programma confronta anche portafogli più semplici: buy & hold SPY,
+equal weight, 60/40, S&P 500 con filtro di trend (media mobile a 10 mesi) e
+portafogli a percentuali fisse (80/20 con obbligazioni, oro o emergenti,
+70/30, 80/10/10). Per aggiungerne uno basta una riga in `FIXED_PORTFOLIOS`
+dentro `main.py`.
+
 Universo di default: `SPY` (azioni USA), `EFA` (azioni sviluppate ex-USA),
 `EEM` (emergenti), `IEF` (Treasury 7-10 anni), `GLD` (oro), `VNQ` (immobiliare).
 
@@ -44,7 +50,17 @@ python main.py --synthetic             # dati simulati, senza internet
 python main.py --cost-bps 20 --lookback 6 --top-k 1
 python main.py --tickers SPY EFA IEF --benchmark SPY
 python main.py --csv prezzi.csv        # CSV con colonna Date + una colonna per ticker
+python main.py --end 2023-12-31        # test di robustezza: senza gli ultimi anni
 python main.py --help
+```
+
+Su Windows con Git Bash (il terminale di VS Code con `MINGW64`) usa le barre `/`:
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+python main.py
 ```
 
 Output: tabella con CAGR, volatilità, Sharpe, max drawdown, Calmar; valore finale
@@ -71,7 +87,7 @@ python -m unittest discover -s tests -v
 
 ```
 data.py          # Yahoo Finance / CSV / dati sintetici, conversione a mensile
-strategy.py      # segnali dual momentum e benchmark
+strategy.py      # dual momentum, benchmark, portafogli fissi, filtro di trend
 backtest.py      # motore di backtest con costi
 metrics.py       # CAGR, volatilità, Sharpe, drawdown, Calmar
 walk_forward.py  # ottimizzazione walk-forward dei parametri

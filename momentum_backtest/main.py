@@ -13,11 +13,27 @@ import pandas as pd
 from backtest import run_backtest
 from data import load_csv, load_yahoo, synthetic_prices, to_monthly
 from metrics import equity_curve, summary
-from strategy import buy_and_hold_weights, dual_momentum_weights, equal_weight_weights
+from strategy import (
+    buy_and_hold_weights,
+    dual_momentum_weights,
+    equal_weight_weights,
+    fixed_weights,
+    sixty_forty_weights,
+    trend_filter_weights,
+)
 from walk_forward import walk_forward
 
 # Azioni USA, azioni sviluppate ex-USA, emergenti, Treasury 7-10 anni, oro, immobiliare
 DEFAULT_TICKERS = ["SPY", "EFA", "EEM", "IEF", "GLD", "VNQ"]
+
+# Portafogli a percentuali fisse da confrontare con il buy & hold
+FIXED_PORTFOLIOS = {
+    "80/20 SPY-obbligazioni": {"SPY": 0.8, "IEF": 0.2},
+    "70/30 SPY-obbligazioni": {"SPY": 0.7, "IEF": 0.3},
+    "80/20 SPY-oro": {"SPY": 0.8, "GLD": 0.2},
+    "80/20 SPY-emergenti": {"SPY": 0.8, "EEM": 0.2},
+    "80/10/10 SPY-oro-obbl.": {"SPY": 0.8, "GLD": 0.1, "IEF": 0.1},
+}
 
 
 def parse_args():
@@ -61,6 +77,14 @@ def main():
         f"Buy & hold {args.benchmark}": bt(buy_and_hold_weights(monthly, args.benchmark)),
         "Equal weight (ribil. mensile)": bt(equal_weight_weights(monthly)),
     }
+    # Le strategie su SPY/IEF/GLD/EEM compaiono solo se quei ticker sono nei dati
+    available = set(monthly.columns)
+    if {"SPY", "IEF"} <= available:
+        strategies["60/40 SPY-IEF"] = bt(sixty_forty_weights(monthly))
+        strategies["SPY con filtro trend"] = bt(trend_filter_weights(monthly))
+    for name, allocation in FIXED_PORTFOLIOS.items():
+        if set(allocation) <= available:
+            strategies[name] = bt(fixed_weights(monthly, allocation))
     # Confronto solo sul periodo out-of-sample, uguale per tutti
     oos = wf_returns.index
     strategies = {name: r.loc[oos] for name, r in strategies.items()}

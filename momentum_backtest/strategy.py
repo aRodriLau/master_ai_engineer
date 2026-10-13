@@ -33,3 +33,28 @@ def buy_and_hold_weights(monthly_prices, ticker):
 def equal_weight_weights(monthly_prices):
     n = monthly_prices.shape[1]
     return pd.DataFrame(1.0 / n, index=monthly_prices.index, columns=monthly_prices.columns)
+
+
+def fixed_weights(monthly_prices, allocation):
+    """Portafoglio a percentuali fisse, es. {"SPY": 0.8, "IEF": 0.2}."""
+    missing = set(allocation) - set(monthly_prices.columns)
+    if missing:
+        raise ValueError(f"Ticker non presenti nei dati: {sorted(missing)}")
+    w = pd.DataFrame(0.0, index=monthly_prices.index, columns=monthly_prices.columns)
+    for ticker, share in allocation.items():
+        w[ticker] = share
+    return w
+
+
+def sixty_forty_weights(monthly_prices, stocks="SPY", bonds="IEF"):
+    return fixed_weights(monthly_prices, {stocks: 0.6, bonds: 0.4})
+
+
+def trend_filter_weights(monthly_prices, risky="SPY", safe="IEF", months=10):
+    """Sull'S&P 500 se sopra la media mobile a 10 mesi, altrimenti obbligazioni."""
+    price = monthly_prices[risky]
+    above = price > price.rolling(months).mean()
+    w = pd.DataFrame(0.0, index=monthly_prices.index, columns=monthly_prices.columns)
+    w[risky] = above.astype(float)
+    w[safe] = 1.0 - w[risky]
+    return w

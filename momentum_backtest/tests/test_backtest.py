@@ -9,7 +9,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backtest import run_backtest  # noqa: E402
 from metrics import cagr, max_drawdown  # noqa: E402
-from strategy import buy_and_hold_weights, dual_momentum_weights  # noqa: E402
+from strategy import (  # noqa: E402
+    buy_and_hold_weights,
+    dual_momentum_weights,
+    fixed_weights,
+    trend_filter_weights,
+)
 
 
 def monthly(values):
@@ -48,6 +53,22 @@ class TestBacktest(unittest.TestCase):
         r = pd.Series([0.1, -0.5, 0.2] + [0.0] * 9)
         self.assertAlmostEqual(max_drawdown(r), -0.5)
         self.assertAlmostEqual(cagr(r), 1.1 * 0.5 * 1.2 - 1)
+
+    def test_fixed_weights(self):
+        prices = monthly({"SPY": [100, 110, 120], "IEF": [100, 101, 102], "GLD": [100, 90, 95]})
+        w = fixed_weights(prices, {"SPY": 0.8, "IEF": 0.2})
+        self.assertTrue((w.sum(axis=1) == 1.0).all())
+        self.assertTrue((w["GLD"] == 0).all())
+        with self.assertRaises(ValueError):
+            fixed_weights(prices, {"XYZ": 1.0})
+
+    def test_trend_filter_switches_to_bonds_in_downtrend(self):
+        spy = list(range(100, 120)) + list(range(119, 99, -1))
+        prices = monthly({"SPY": spy, "IEF": [100] * len(spy)})
+        w = trend_filter_weights(prices, months=10)
+        self.assertEqual(w["SPY"].iloc[15], 1.0)   # trend in salita: azioni
+        self.assertEqual(w["IEF"].iloc[-1], 1.0)   # trend in discesa: obbligazioni
+        self.assertTrue((w.sum(axis=1) == 1.0).all())
 
 
 if __name__ == "__main__":
